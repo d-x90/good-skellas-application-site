@@ -1,6 +1,6 @@
 import { Connection, PublicKey, Transaction } from '@solana/web3.js';
 import {
-  createBurnCheckedInstruction,
+  /*createBurnCheckedInstruction,*/
   createTransferCheckedInstruction,
   createAssociatedTokenAccountInstruction,
   getAccount,

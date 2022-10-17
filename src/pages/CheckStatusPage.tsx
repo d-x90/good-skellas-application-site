@@ -1,35 +1,13 @@
-import {
-  Button,
-  CircularProgress,
-  FormControl,
-  MenuItem,
-  Modal,
-  Select,
-  Typography,
-} from '@mui/material';
+import { Typography } from '@mui/material';
 import { Box } from '@mui/system';
 import whiteLogo from '../assets/WhiteLogo.png';
-import penImg from '../assets/pen.png';
-import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { Link } from 'react-router-dom';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-material-ui';
-import { confetti } from 'dom-confetti';
-import { useRef, useEffect, useState, useCallback } from 'react';
-import {
-  checkIfIsEligableForDiscount,
-  getBonesTokenAddress,
-  getOwnedPens,
-  getPenAndTokenBurnTransaction,
-} from '../util/solana';
-import { PublicKey } from '@solana/web3.js';
-import { useToaster } from '../util/Toaster';
+import { useEffect, useState } from 'react';
 
 const ApplyPage = () => {
-  const { connection } = useConnection();
-  const navigate = useNavigate();
   const wallet = useWallet();
-  const { open: openToaster } = useToaster();
 
   const [applications, setApplications] = useState<Array<any> | null>(null);
 
@@ -40,6 +18,7 @@ const ApplyPage = () => {
 
     (async () => {
       //setApplications(await getApplications(wallet.publicKey!));
+      setApplications([]);
     })();
   }, [applications, wallet]);
 
