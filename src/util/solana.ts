@@ -17,13 +17,34 @@ const VAULT_WALLET_ADDRESS = process.env.REACT_APP_VAULT_WALLET_ADDRESS;
 const PEN_HASHLIST = require('../assets/penHashlist.json') as string[];
 const KEYS_HASHLIST = require('../assets/skellakeyHashlist.json') as string[];
 
+const getAllTokenAccounts = async (userWallet: PublicKey) => {
+  let offset = 0;
+  let limit = 50;
+  let isResponseArrayEmpty = false;
+  const tokenAccounts = [];
+  while (!isResponseArrayEmpty) {
+    const { data: response } = await axios.get(
+      `https://api.solscan.io/account/v2/tokenaccounts?address=${userWallet.toString()}&offset=${offset}&limit=${limit}&cluster=`
+    );
+
+    const responseArray = response.data;
+
+    if (responseArray.length > 0) {
+      tokenAccounts.push(...responseArray);
+      offset += limit;
+    } else {
+      isResponseArrayEmpty = true;
+    }
+  }
+
+  return tokenAccounts;
+};
+
 export const checkIfIsEligableForDiscount = async (userWallet: PublicKey) => {
-  const { data: tokenAccounts } = await axios.get(
-    `https://api.solscan.io/account/v2/tokenaccounts?address=${userWallet.toString()}&offset=0&limit=5000&cluster=`
-  );
+  const tokenAccounts = await getAllTokenAccounts(userWallet);
 
   try {
-    const ownsAKey = tokenAccounts.data.some(
+    const ownsAKey = tokenAccounts.some(
       (tokenAccountData: any) =>
         KEYS_HASHLIST.includes(tokenAccountData.tokenAddress) &&
         tokenAccountData.amount > 0
@@ -37,12 +58,10 @@ export const checkIfIsEligableForDiscount = async (userWallet: PublicKey) => {
 };
 
 export const getBonesTokenAddress = async (userWallet: PublicKey) => {
-  const { data: bonesHoldersResponse } = await axios.get(
-    `https://api.solscan.io/account/v2/tokenaccounts?address=${userWallet.toString()}&offset=0&limit=5000&cluster=`
-  );
+  const tokenAccounts = await getAllTokenAccounts(userWallet);
 
   try {
-    const bonesTokenAddress = bonesHoldersResponse.data.find(
+    const bonesTokenAddress = tokenAccounts.find(
       (tokenAccountData: any) =>
         tokenAccountData.tokenAddress === BONES_MINT_PUBKEY.toString() &&
         tokenAccountData.amount > 0
@@ -57,11 +76,9 @@ export const getBonesTokenAddress = async (userWallet: PublicKey) => {
 
 export const getOwnedPens = async (userWallet: PublicKey) => {
   try {
-    const { data } = await axios.get(
-      `https://api.solscan.io/account/v2/tokenaccounts?address=${userWallet.toString()}&offset=0&limit=5000&cluster=`
-    );
+    const tokenAccounts = await getAllTokenAccounts(userWallet);
 
-    const pensOwned = data.data
+    const pensOwned = tokenAccounts
       .filter(
         ({ amount, tokenAddress }: any) =>
           amount === 1 && PEN_HASHLIST.includes(tokenAddress)
