@@ -146,7 +146,20 @@ export const getPenAndTokenBurnTransaction = async ({
 
   const transactions = [];
 
-  if (!(await getAccount(connection, bonesAta))) {
+  try {
+    const bonesAccount = await getAccount(connection, bonesAta);
+    if (!bonesAccount) {
+      transactions.push(
+        createAssociatedTokenAccountInstruction(
+          userWallet, // payer
+          bonesAta, // ata
+          new PublicKey(VAULT_WALLET_ADDRESS), // owner
+          BONES_MINT_PUBKEY // mint
+        )
+      );
+    }
+  } catch (e) {
+    console.log('gothca');
     transactions.push(
       createAssociatedTokenAccountInstruction(
         userWallet, // payer
@@ -157,12 +170,27 @@ export const getPenAndTokenBurnTransaction = async ({
     );
   }
 
-  if (!(await getAccount(connection, penAta))) {
-    createAssociatedTokenAccountInstruction(
-      userWallet, // payer
-      penAta, // ata
-      new PublicKey(VAULT_WALLET_ADDRESS), // owner
-      penMintPubkey // mint
+  try {
+    const penAccount = await getAccount(connection, penAta);
+    if (!penAccount) {
+      transactions.push(
+        createAssociatedTokenAccountInstruction(
+          userWallet, // payer
+          penAta, // ata
+          new PublicKey(VAULT_WALLET_ADDRESS), // owner
+          penMintPubkey // mint
+        )
+      );
+    }
+  } catch (e) {
+    console.log('Gothcaa');
+    transactions.push(
+      createAssociatedTokenAccountInstruction(
+        userWallet, // payer
+        penAta, // ata
+        new PublicKey(VAULT_WALLET_ADDRESS), // owner
+        penMintPubkey // mint
+      )
     );
   }
 

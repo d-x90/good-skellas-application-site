@@ -150,6 +150,8 @@ const ApplyPage = () => {
         return false;
       }
 
+      console.log((e as any).name);
+
       openToaster({
         severity: 'error',
         message:
