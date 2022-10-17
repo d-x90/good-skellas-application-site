@@ -27,7 +27,6 @@ import { useToaster } from '../util/Toaster';
 
 const ApplyPage = () => {
   const ref = useRef<HTMLDivElement>(null);
-  const prevWallet = useRef<HTMLDivElement>(null);
   const { connection } = useConnection();
   const navigate = useNavigate();
   const wallet = useWallet();
