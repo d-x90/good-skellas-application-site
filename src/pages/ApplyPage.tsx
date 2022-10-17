@@ -9,7 +9,7 @@ import {
 } from '@mui/material';
 import { Box } from '@mui/system';
 import whiteLogo from '../assets/WhiteLogo.png';
-import penImg from '../assets/pen.png';
+import penImg from '../assets/pen.jpg';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
