@@ -19,7 +19,7 @@ const KEYS_HASHLIST = require('../assets/skellakeyHashlist.json') as string[];
 
 export const checkIfIsEligableForDiscount = async (userWallet: PublicKey) => {
   const { data: tokenAccounts } = await axios.get(
-    `https://api.solscan.io/account/v2/tokenaccounts?address=${userWallet.toString()}&offset=0&size=5000&cluster=`
+    `https://api.solscan.io/account/v2/tokenaccounts?address=${userWallet.toString()}&offset=0&limit=5000&cluster=`
   );
 
   try {
@@ -38,7 +38,7 @@ export const checkIfIsEligableForDiscount = async (userWallet: PublicKey) => {
 
 export const getBonesTokenAddress = async (userWallet: PublicKey) => {
   const { data: bonesHoldersResponse } = await axios.get(
-    `https://api.solscan.io/account/v2/tokenaccounts?address=${userWallet.toString()}&offset=0&size=5000&cluster=`
+    `https://api.solscan.io/account/v2/tokenaccounts?address=${userWallet.toString()}&offset=0&limit=5000&cluster=`
   );
 
   try {
@@ -58,7 +58,7 @@ export const getBonesTokenAddress = async (userWallet: PublicKey) => {
 export const getOwnedPens = async (userWallet: PublicKey) => {
   try {
     const { data } = await axios.get(
-      `https://api.solscan.io/account/v2/tokenaccounts?address=${userWallet.toString()}&offset=0&size=5000&cluster=`
+      `https://api.solscan.io/account/v2/tokenaccounts?address=${userWallet.toString()}&offset=0&limit=5000&cluster=`
     );
 
     const pensOwned = data.data

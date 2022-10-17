@@ -27,6 +27,7 @@ import { useToaster } from '../util/Toaster';
 
 const ApplyPage = () => {
   const ref = useRef<HTMLDivElement>(null);
+  const prevWallet = useRef<HTMLDivElement>(null);
   const { connection } = useConnection();
   const navigate = useNavigate();
   const wallet = useWallet();
@@ -44,10 +45,9 @@ const ApplyPage = () => {
     setModalOpen(false);
   };
 
-  const [pens, setPens] =
-    useState<
-      { mint: string; tokenAccountAddress: string; tokenName: string }[]
-    >();
+  const [pens, setPens] = useState<
+    { mint: string; tokenAccountAddress: string; tokenName: string }[] | null
+  >(null);
 
   const [selectedPen, setSelectedPen] = useState<{
     mint: string;
@@ -67,7 +67,11 @@ const ApplyPage = () => {
     boolean | null
   >(null);
 
-  useEffect(() => {}, [wallet]);
+  useEffect(() => {
+    setIsEligibleForDiscount(null);
+    setBonesTokenAddress(null);
+    setPens(null);
+  }, [wallet.publicKey]);
 
   useEffect(() => {
     if (isEligibleForDiscount !== null || !wallet.connected) {
@@ -434,8 +438,10 @@ const ApplyPage = () => {
                     mt: '24px',
                   }}
                   onClick={() => {
-                    navigate('/check-status');
+                    setTransactionSignature(null);
+                    setPens(null);
                     setModalOpen(false);
+                    navigate('/check-status');
                   }}
                 >
                   Ok
