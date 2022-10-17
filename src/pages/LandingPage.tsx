@@ -13,12 +13,10 @@ const LandingPage = () => {
 
   useEffect(() => {
     try {
-      console.log('eh');
       if (ref.current) {
         return;
       }
 
-      console.log('he');
       //@ts-ignore
       ref.current = new NextParticle({
         image: document.querySelector('#MainLogo'),

@@ -1,7 +1,9 @@
 import {
   Button,
+  CircularProgress,
   FormControl,
   MenuItem,
+  Modal,
   Select,
   Typography,
 } from '@mui/material';
@@ -9,12 +11,13 @@ import { Box } from '@mui/system';
 import whiteLogo from '../assets/WhiteLogo.png';
 import penImg from '../assets/pen.png';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-material-ui';
 import { confetti } from 'dom-confetti';
 import { useRef, useEffect, useState, useCallback } from 'react';
 import {
+  checkIfIsEligableForDiscount,
   getBonesTokenAddress,
   getOwnedPens,
   getPenAndTokenBurnTransaction,
@@ -25,8 +28,21 @@ import { useToaster } from '../util/Toaster';
 const ApplyPage = () => {
   const ref = useRef<HTMLDivElement>(null);
   const { connection } = useConnection();
+  const navigate = useNavigate();
   const wallet = useWallet();
   const { open: openToaster } = useToaster();
+  const [isModalOpen, setModalOpen] = useState(false);
+
+  const handleModalClose = (
+    event: React.SyntheticEvent | Event,
+    reason?: string
+  ) => {
+    if (reason === 'backdropClick') {
+      return;
+    }
+
+    setModalOpen(false);
+  };
 
   const [pens, setPens] =
     useState<
@@ -42,6 +58,28 @@ const ApplyPage = () => {
   const [bonesTokenAddress, setBonesTokenAddress] = useState<string | null>(
     null
   );
+
+  const [transactionSignature, setTransactionSignature] = useState<
+    string | null
+  >(null);
+
+  const [isEligibleForDiscount, setIsEligibleForDiscount] = useState<
+    boolean | null
+  >(null);
+
+  useEffect(() => {}, [wallet]);
+
+  useEffect(() => {
+    if (isEligibleForDiscount !== null || !wallet.connected) {
+      return;
+    }
+
+    (async () => {
+      setIsEligibleForDiscount(
+        await checkIfIsEligableForDiscount(wallet.publicKey!)
+      );
+    })();
+  }, [isEligibleForDiscount, wallet]);
 
   useEffect(() => {
     if (bonesTokenAddress || !wallet.connected) {
@@ -63,17 +101,17 @@ const ApplyPage = () => {
     })();
   }, [pens, wallet]);
 
-  const applyWithBurnTransaction = useCallback(async () => {
+  const applyWithTokenSendTransaction = useCallback(async () => {
     if (!wallet || !wallet.connected) {
       openToaster({ severity: 'error', message: 'Wallet is not connected' });
       console.log('walleterror');
-      return;
+      return false;
     }
 
     if (!pens || !selectedPen) {
       openToaster({ severity: 'error', message: 'Pen is not selected' });
       console.log('penserror');
-      return;
+      return false;
     }
 
     if (!bonesTokenAddress) {
@@ -82,21 +120,50 @@ const ApplyPage = () => {
         message: "You don't have enough $BONES",
       });
       console.log('bonesError');
-      return;
+      return false;
     }
 
-    const unsignedTx = getPenAndTokenBurnTransaction({
-      connection,
-      userWallet: wallet.publicKey!,
-      bonesTokenAccountPubkey: new PublicKey(bonesTokenAddress),
-      penMintPubkey: new PublicKey(selectedPen.mint),
-      penTokenAccountPubkey: new PublicKey(selectedPen.tokenAccountAddress),
-    });
+    try {
+      const unsignedTx = await getPenAndTokenBurnTransaction({
+        connection,
+        userWallet: wallet.publicKey!,
+        bonesTokenAccountPubkey: new PublicKey(bonesTokenAddress),
+        penMintPubkey: new PublicKey(selectedPen.mint),
+        penTokenAccountPubkey: new PublicKey(selectedPen.tokenAccountAddress),
+        isEligibleForDiscount: isEligibleForDiscount || false,
+      });
 
-    const signature = await wallet.sendTransaction(unsignedTx, connection);
+      setModalOpen(true);
+      const signature = await wallet.sendTransaction(unsignedTx, connection);
+      console.log(`txhash: ${signature}`);
+      setTransactionSignature(signature);
 
-    console.log(`txhash: ${await connection.getSignatureStatus(signature)}`);
-  }, [wallet, pens, selectedPen, bonesTokenAddress, connection, openToaster]);
+      return true;
+    } catch (e) {
+      setModalOpen(false);
+
+      if ((e as { name: string }).name === 'WalletSendTransactionError') {
+        openToaster({ severity: 'warning', message: 'Transaction rejected' });
+        return false;
+      }
+
+      openToaster({
+        severity: 'error',
+        message:
+          'Something went wrong, please check if the transaction succeeded and contact us in discord',
+      });
+
+      return false;
+    }
+  }, [
+    wallet,
+    pens,
+    selectedPen,
+    bonesTokenAddress,
+    connection,
+    openToaster,
+    isEligibleForDiscount,
+  ]);
 
   return (
     <div
@@ -167,10 +234,10 @@ const ApplyPage = () => {
               fontWeight: '900',
             }}
           >
-            Skellification costs 1 pen and 500 $BONES
+            Skellification costs 1 pen and {isEligibleForDiscount ? 500 : 750}{' '}
+            $BONES
           </Typography>
           <div
-            ref={ref}
             style={{
               height: '350px',
               width: '350px',
@@ -260,22 +327,24 @@ const ApplyPage = () => {
                   return;
                 }
 
-                await applyWithBurnTransaction();
+                const isSuccess = await applyWithTokenSendTransaction();
 
-                confetti(ref.current as HTMLElement, {
-                  angle: 45,
-                  spread: 60,
-                  elementCount: 200,
-                  stagger: 1,
-                  dragFriction: 0.09,
-                });
-                confetti(ref.current as HTMLElement, {
-                  angle: 135,
-                  spread: 60,
-                  elementCount: 200,
-                  stagger: 1,
-                  dragFriction: 0.09,
-                });
+                if (isSuccess) {
+                  confetti(ref.current as HTMLElement, {
+                    angle: 45,
+                    spread: 60,
+                    elementCount: 200,
+                    stagger: 1,
+                    dragFriction: 0.09,
+                  });
+                  confetti(ref.current as HTMLElement, {
+                    angle: 135,
+                    spread: 60,
+                    elementCount: 200,
+                    stagger: 1,
+                    dragFriction: 0.09,
+                  });
+                }
               }}
             >
               {wallet.connected ? (
@@ -291,6 +360,103 @@ const ApplyPage = () => {
             </Button>
           </motion.div>
         </Box>
+
+        <Modal
+          open={isModalOpen}
+          onClose={handleModalClose}
+          aria-labelledby="modal-modal-title"
+          aria-describedby="modal-modal-description"
+        >
+          <Box
+            ref={ref}
+            sx={{
+              position: 'absolute' as 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '600px',
+              bgcolor: 'white',
+              border: '2px solid #000',
+              boxShadow: 24,
+              p: 4,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {transactionSignature ? (
+              <>
+                <Typography
+                  variant="h1"
+                  sx={{ mb: '32px', fontWeight: '500', fontSize: '4.2rem' }}
+                >
+                  Success!✅
+                </Typography>
+
+                <Typography
+                  id="modal-modal-title"
+                  variant="h3"
+                  sx={{ fontWeight: '500', fontSize: '2rem' }}
+                >
+                  Please open a ticket in our{' '}
+                  <a
+                    target="_blank"
+                    rel="noreferrer"
+                    href="https://discord.gg/az9bzaxBv4"
+                  >
+                    discord
+                  </a>{' '}
+                  with this{' '}
+                  <a
+                    target="_blank"
+                    rel="noreferrer"
+                    href={`https://solscan.io/tx/${transactionSignature}`}
+                  >
+                    transaction!
+                  </a>
+                </Typography>
+
+                <Button
+                  sx={{
+                    padding: '0 20px',
+                    border: `2px solid black`,
+                    fontSize: '2.6rem',
+                    fontFamily: 'Roboto',
+                    color: 'black',
+                    backgroundColor: 'white',
+                    cursor: 'pointer',
+                    rotate: '0deg',
+                    '&:hover': {
+                      color: 'white',
+                      background: 'black',
+                    },
+                    mt: '24px',
+                  }}
+                  onClick={() => {
+                    navigate('/check-status');
+                    setModalOpen(false);
+                  }}
+                >
+                  Ok
+                </Button>
+              </>
+            ) : (
+              <>
+                {' '}
+                <Typography
+                  id="modal-modal-title"
+                  variant="h3"
+                  sx={{ fontWeight: '500' }}
+                >
+                  Please do not close the page until the transaction is
+                  confirmed..
+                </Typography>
+                <CircularProgress sx={{ color: 'black', mt: '24px' }} />
+              </>
+            )}
+          </Box>
+        </Modal>
       </div>
     </div>
   );
