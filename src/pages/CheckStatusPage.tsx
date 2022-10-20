@@ -7,7 +7,6 @@ import { WalletMultiButton } from '@solana/wallet-adapter-material-ui';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import csv from 'csvtojson';
-import { calcLength } from 'framer-motion';
 
 const ApplyPage = () => {
   const wallet = useWallet();
