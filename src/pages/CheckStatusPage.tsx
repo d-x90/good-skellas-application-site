@@ -5,22 +5,47 @@ import { Link } from 'react-router-dom';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-material-ui';
 import { useEffect, useState } from 'react';
+import axios from 'axios';
+import csv from 'csvtojson';
+import { calcLength } from 'framer-motion';
 
 const ApplyPage = () => {
   const wallet = useWallet();
 
+  const [allApplications, setAllApplications] = useState<Array<any> | null>(
+    null
+  );
   const [applications, setApplications] = useState<Array<any> | null>(null);
 
   useEffect(() => {
-    if (applications || !wallet.connected) {
+    if (allApplications) {
       return;
     }
 
     (async () => {
-      //setApplications(await getApplications(wallet.publicKey!));
-      setApplications([]);
+      const { data } = await axios.get(
+        'https://docs.google.com/spreadsheets/d/e/2PACX-1vQZVdsXEKA8yaxQx1c9yM2pvrz3ibO3iT6saH3u0oSEnoBf9WXLXZ0vDUQNUzjwnEoQFqQkIYC81INZ/pub?gid=0&single=true&output=csv'
+      );
+
+      setAllApplications(await csv().fromString(data));
     })();
-  }, [applications, wallet]);
+  }, [allApplications]);
+
+  useEffect(() => {
+    if (allApplications === null) {
+      return;
+    }
+
+    if (applications || !wallet.connected) {
+      return;
+    }
+
+    setApplications(
+      allApplications.filter(
+        (application) => application.UserWallet === wallet.publicKey?.toString()
+      )
+    );
+  }, [applications, wallet, allApplications]);
 
   return (
     <div
@@ -72,15 +97,16 @@ const ApplyPage = () => {
           flexDirection: 'row',
           justifyContent: 'center',
           alignItems: 'center',
+          position: 'relative',
         }}
       >
         <Box
           sx={{
-            width: '500px',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
             flexDirection: 'column',
+            width: '50vw',
           }}
         >
           <Typography
@@ -95,9 +121,95 @@ const ApplyPage = () => {
             {wallet.connected
               ? applications === null || applications?.length === 0
                 ? 'Applications are being processed please check back later!'
-                : 'Applications'
+                : 'Your applications:'
               : 'Please connect your wallet to check application status.'}
           </Typography>
+          {wallet.connected && applications !== null ? (
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                width: '100%',
+
+                borderBottom: '3px solid white',
+                marginBottom: '36px',
+              }}
+            >
+              <Typography
+                variant="h2"
+                sx={{
+                  color: 'white',
+                  fontWeight: '900',
+                }}
+              >
+                NFT
+              </Typography>
+              <Typography
+                variant="h2"
+                sx={{
+                  color: 'white',
+                  fontWeight: '900',
+                }}
+              >
+                Status
+              </Typography>
+            </div>
+          ) : null}
+          <div
+            style={{
+              height: '30vh',
+              width: 'calc(100% + 32px)',
+              padding: '0 16px',
+              overflowY: 'auto',
+            }}
+          >
+            {applications?.map((application, index) => (
+              <div
+                key={application.Transaction + index}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <a
+                  style={{
+                    color: 'white',
+                    marginBottom: '36px',
+                    fontWeight: '900',
+                    fontSize: '3rem',
+                  }}
+                  target="_blank"
+                  href={`https://solscan.io/token/${application.OriginalNft}`}
+                  rel="noreferrer"
+                >
+                  {(() => {
+                    const hash = application.OriginalNft;
+                    return (
+                      hash.substring(0, 3) +
+                      '...' +
+                      hash.substring(hash.length - 4)
+                    );
+                  })()}
+                </a>
+                <Typography
+                  variant="h2"
+                  sx={{
+                    color: 'white',
+                    marginBottom: '36px',
+                    fontWeight: '900',
+                  }}
+                >
+                  {application.Status === 'InProgress'
+                    ? 'In progress'
+                    : application.Status === 'Rejected'
+                    ? 'Rejected'
+                    : application.Status === 'Done'
+                    ? 'Done'
+                    : ''}
+                </Typography>
+              </div>
+            ))}
+          </div>
         </Box>
       </div>
     </div>
