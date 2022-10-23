@@ -190,22 +190,47 @@ const ApplyPage = () => {
                     );
                   })()}
                 </a>
-                <Typography
-                  variant="h2"
-                  sx={{
-                    color: 'white',
-                    marginBottom: '36px',
-                    fontWeight: '900',
-                  }}
-                >
-                  {application.Status === 'InProgress'
-                    ? 'In progress'
-                    : application.Status === 'Rejected'
-                    ? 'Rejected'
-                    : application.Status === 'Done'
-                    ? 'Done'
-                    : ''}
-                </Typography>
+                {['InProgress', 'Rejected'].includes(application.Status) ? (
+                  <Typography
+                    variant="h2"
+                    sx={{
+                      color: 'white',
+                      marginBottom: '36px',
+                      fontWeight: '900',
+                    }}
+                  >
+                    {application.Status === 'InProgress'
+                      ? 'In progress'
+                      : application.Status === 'Rejected'
+                      ? 'Rejected'
+                      : 'Unknown'}
+                  </Typography>
+                ) : application.Status === 'Done' ? (
+                  <a
+                    style={{
+                      color: 'white',
+                      marginBottom: '36px',
+                      fontWeight: '900',
+                      fontSize: '3rem',
+                    }}
+                    target="_blank"
+                    href={`https://solscan.io/token/${application.NewNftHash}`}
+                    rel="noreferrer"
+                  >
+                    Done
+                  </a>
+                ) : (
+                  <Typography
+                    variant="h2"
+                    sx={{
+                      color: 'white',
+                      marginBottom: '36px',
+                      fontWeight: '900',
+                    }}
+                  >
+                    Unknown
+                  </Typography>
+                )}
               </div>
             ))}
           </div>
